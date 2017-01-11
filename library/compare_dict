@@ -53,31 +53,62 @@ EXAMPLES = '''
 
 '''
 
-def compare(list_one, list_two):
-    msg = ''
-    for el in list_one:
-        if el not in list_two:
-            msg = str(el) + " is not found in sample input"
-            return 1,msg
-    return 0,msg
+def compare(dict_one, dict_two):
+    msgs = []
+    rc = 0
+
+    for el in dict_one:
+        if el not in dict_two:
+            msgs.append("Key '%s' is not found in sample input" % (el))
+            rc += 1
+        else:
+            # we know the elements exist, so no need for .get()
+            if dict_one[el] != dict_two[el]:
+                msgs.append("Value for key '%s' is not same as sample input\nResult was: '%s'\nSample was: '%s'\n" % (el, dict_one[el], dict_two[el]))
+                rc += 1
+
+    # there is likely a more elagant way to combine this inverse-test with the above, but quick and dirty, compare it backwards:
+    for el in dict_two:
+        if el not in dict_one:
+            msgs.append("Key '%s' is not found in result output" % (el))
+            rc += 1 
+
+    msg = " | ".join(msgs)
+    return rc,msg
 
 def main():
 
     module = AnsibleModule(
         argument_spec=dict(
-            result=dict(required=True),
-            sample=dict(required=True),
+            result=dict(required=True, type='list'),
+            sample=dict(required=True, type='list'),
         ),
         supports_check_mode=False
     )
 
-    result_dict = module.params['result']
-    sample_dict = module.params['sample']
+    result_list = module.params['result']
+    sample_list = module.params['sample']
 
-    rc,msg = compare(result_dict, sample_dict)
+    # Ansible gives us a list of dicts to compare for each record in parsed,
+    # raw, so we need to iterate over them and summarize the results...
+
+    rc = 0
+    msgs = []
+
+    if len(result_list) != len(sample_list): 
+        msgs.append("Sample and Actual result sets differ in length")
+        rc += 1
+
+    for i, (result_dict, sample_dict) in enumerate(zip(result_list, sample_list)):
+        lrc,lmsg = compare(result_dict, sample_dict)
+        rc += lrc
+
+        # Insert a description of the group number into the msg
+        if lrc:
+            msgs.append("Test Group[%d]: %s" % (i+1, lmsg))
 
     if rc != 0:
-        module.fail_json(msg=msg)
+        module.fail_json(msg="Differences were detected in the raw vs parsed", stdout="\n".join(msgs))
     else:
         module.exit_json(changed=False)
 
