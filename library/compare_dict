@@ -64,7 +64,7 @@ def compare(dict_one, dict_two):
         else:
             # we know the elements exist, so no need for .get()
             if dict_one[el] != dict_two[el]:
-                msgs.append("Value for key '%s' is not same as sample input\nResult was: '%s'\nSample was: '%s'\n" % (el, dict_one[el], dict_two[el]))
+                msgs.append("Value for key '%s' is not same as sample input\n        Result was: '%s'\n        Sample was: '%s'" % (el, dict_one[el], dict_two[el]))
                 rc += 1
 
     # there is likely a more elagant way to combine this inverse-test with the above, but quick and dirty, compare it backwards:
@@ -73,7 +73,7 @@ def compare(dict_one, dict_two):
             msgs.append("Key '%s' is not found in result output" % (el))
             rc += 1 
 
-    msg = " | ".join(msgs)
+    msg = "\n".join(msgs)
     return rc,msg
 
 def main():
